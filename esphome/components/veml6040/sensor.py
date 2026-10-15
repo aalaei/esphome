@@ -1,10 +1,5 @@
 import esphome.codegen as cg
 from esphome.components import i2c, sensor
-from esphome.components.const import (
-    CONF_BLUE_CHANNEL,
-    CONF_GREEN_CHANNEL,
-    CONF_RED_CHANNEL,
-)
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_COLOR_TEMPERATURE,
@@ -24,6 +19,9 @@ from esphome.types import ConfigType
 CODEOWNERS = ["@aalaei"]
 DEPENDENCIES = ["i2c"]
 
+CONF_RED_CHANNEL = "red_channel"
+CONF_GREEN_CHANNEL = "green_channel"
+CONF_BLUE_CHANNEL = "blue_channel"
 CONF_WHITE_CHANNEL = "white_channel"
 
 veml6040_ns = cg.esphome_ns.namespace("veml6040")
@@ -89,10 +87,13 @@ async def to_code(config: ConfigType) -> None:
     cg.add(var.set_integration_time(config[CONF_INTEGRATION_TIME]))
     cg.add(var.set_glass_attenuation_factor(config[CONF_GLASS_ATTENUATION_FACTOR]))
 
-    sensors = sensor.sub_sensors(config)
-    await sensors(CONF_RED_CHANNEL, var.set_red_sensor)
-    await sensors(CONF_GREEN_CHANNEL, var.set_green_sensor)
-    await sensors(CONF_BLUE_CHANNEL, var.set_blue_sensor)
-    await sensors(CONF_WHITE_CHANNEL, var.set_white_sensor)
-    await sensors(CONF_ILLUMINANCE, var.set_illuminance_sensor)
-    await sensors(CONF_COLOR_TEMPERATURE, var.set_color_temperature_sensor)
+    for key, setter in (
+        (CONF_RED_CHANNEL, var.set_red_sensor),
+        (CONF_GREEN_CHANNEL, var.set_green_sensor),
+        (CONF_BLUE_CHANNEL, var.set_blue_sensor),
+        (CONF_WHITE_CHANNEL, var.set_white_sensor),
+        (CONF_ILLUMINANCE, var.set_illuminance_sensor),
+        (CONF_COLOR_TEMPERATURE, var.set_color_temperature_sensor),
+    ):
+        if (conf := config.get(key)) is not None:
+            cg.add(setter(await sensor.new_sensor(conf)))

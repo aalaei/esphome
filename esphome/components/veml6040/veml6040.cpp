@@ -7,7 +7,7 @@
 
 namespace esphome::veml6040 {
 
-ESPHOME_LOG_TAG(TAG, "veml6040");
+static const char *const TAG = "veml6040";
 
 static constexpr uint8_t CONFIG_REG = 0x00;
 static constexpr uint8_t R_DATA_REG = 0x08;
