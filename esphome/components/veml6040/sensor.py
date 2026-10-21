@@ -1,14 +1,10 @@
 import esphome.codegen as cg
 from esphome.components import i2c, sensor
-from esphome.components.const import (
-    CONF_BLUE_CHANNEL,
-    CONF_GREEN_CHANNEL,
-    CONF_RED_CHANNEL,
-)
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_COLOR_TEMPERATURE,
     CONF_GLASS_ATTENUATION_FACTOR,
+    CONF_ID,
     CONF_ILLUMINANCE,
     CONF_INTEGRATION_TIME,
     DEVICE_CLASS_ILLUMINANCE,
@@ -23,7 +19,10 @@ from esphome.types import ConfigType
 CODEOWNERS = ["@aalaei"]
 DEPENDENCIES = ["i2c"]
 
+CONF_BLUE_CHANNEL = "blue_channel"
 CONF_COLOR_TEMPERATURE_OFFSET = "color_temperature_offset"
+CONF_GREEN_CHANNEL = "green_channel"
+CONF_RED_CHANNEL = "red_channel"
 CONF_WHITE_CHANNEL = "white_channel"
 
 veml6040_ns = cg.esphome_ns.namespace("veml6040")
@@ -83,16 +82,21 @@ CONFIG_SCHEMA = (
 
 
 async def to_code(config: ConfigType) -> None:
-    var = await i2c.new_i2c_component(
-        config,
+    var = cg.new_Pvariable(
+        config[CONF_ID],
         config[CONF_INTEGRATION_TIME],
         config[CONF_GLASS_ATTENUATION_FACTOR],
         config[CONF_COLOR_TEMPERATURE_OFFSET],
     )
-    sensors = sensor.sub_sensors(config)
-    await sensors(CONF_RED_CHANNEL, var.set_red_sensor)
-    await sensors(CONF_GREEN_CHANNEL, var.set_green_sensor)
-    await sensors(CONF_BLUE_CHANNEL, var.set_blue_sensor)
-    await sensors(CONF_WHITE_CHANNEL, var.set_white_sensor)
-    await sensors(CONF_ILLUMINANCE, var.set_illuminance_sensor)
-    await sensors(CONF_COLOR_TEMPERATURE, var.set_color_temperature_sensor)
+    await cg.register_component(var, config)
+    await i2c.register_i2c_device(var, config)
+    for key, setter in (
+        (CONF_RED_CHANNEL, var.set_red_sensor),
+        (CONF_GREEN_CHANNEL, var.set_green_sensor),
+        (CONF_BLUE_CHANNEL, var.set_blue_sensor),
+        (CONF_WHITE_CHANNEL, var.set_white_sensor),
+        (CONF_ILLUMINANCE, var.set_illuminance_sensor),
+        (CONF_COLOR_TEMPERATURE, var.set_color_temperature_sensor),
+    ):
+        if (conf := config.get(key)) is not None:
+            cg.add(setter(await sensor.new_sensor(conf)))
